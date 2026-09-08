@@ -162,11 +162,10 @@
     function openInEdge(e) {
         e.preventDefault();
         const currentUrl = window.location.href.replace(/^https?:\/\//, '');
-        // 모바일/PC Edge 스키마 호출 시도
         window.location.href = "microsoft-edge-https://" + currentUrl;
     }
 
-    // 성구 표기를 TTS 발음용 한글로 변환하는 함수 (장/편, 절 발음교정)
+    // 성구 표기를 TTS 발음용 한글로 변환하는 함수
     function convertBibleForTTS(text) {
         if (!text) return text;
 
@@ -251,15 +250,33 @@
         loadDailyText(targetDate);
     }
 
+    // 남성 목소리를 최우선 선택하는 함수
     function getEdgeBestVoice() {
         const voices = synth.getVoices();
-        let bestVoice = voices.find(v => v.lang.includes('ko') && v.name.includes('Natural'));
+        
+        // 1. Edge의 한국어 남성 AI 음성 (InJoon)
+        let bestVoice = voices.find(v => v.lang.includes('ko') && (v.name.includes('InJoon') || v.name.includes('InJoonOnline')));
+        
+        // 2. 남성 키워드가 포함된 한국어 음성
         if (!bestVoice) {
-            bestVoice = voices.find(v => v.lang.includes('ko') && v.name.includes('Google'));
+            bestVoice = voices.find(v => v.lang.includes('ko') && (v.name.includes('Male') || v.name.includes('남성')));
         }
+        
+        // 3. 구글 남성 음성
+        if (!bestVoice) {
+            bestVoice = voices.find(v => v.lang.includes('ko') && v.name.includes('Google') && v.name.includes('Male'));
+        }
+
+        // 4. 일반 Natural 음성
+        if (!bestVoice) {
+            bestVoice = voices.find(v => v.lang.includes('ko') && v.name.includes('Natural'));
+        }
+
+        // 5. 기본 한국어 음성
         if (!bestVoice) {
             bestVoice = voices.find(v => v.lang.includes('ko'));
         }
+
         return bestVoice;
     }
 
@@ -289,8 +306,8 @@
         }
 
         utterance.lang = 'ko-KR';
-        utterance.rate = 0.95;
-        utterance.pitch = 1.0;
+        utterance.rate = 0.95; // 낭독 속도 (약간 느리고 차분하게)
+        utterance.pitch = 0.95; // 톤을 살짝 낮추어 더욱 무게감 있게 설정
 
         synth.speak(utterance);
     }
