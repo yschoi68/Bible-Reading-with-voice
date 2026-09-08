@@ -6,8 +6,39 @@
     <title>날마다 성경을 검토함 (Edge AI 음성)</title>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 30px auto; padding: 0 15px; background-color: #f4f6f8; }
+        body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #f4f6f8; }
         
+        /* Edge 권장 안내 배너 (기본 숨김) */
+        .edge-recommend-banner {
+            display: none;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .edge-btn {
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 10px;
+            white-space: nowrap;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .edge-btn:hover { background-color: #005a9e; }
+
         /* 상단 타이틀 배너 스타일 */
         .header-banner {
             background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
@@ -72,7 +103,15 @@
 </head>
 <body>
 
-<!-- 상단 멋진 타이틀 배너 -->
+<!-- Edge 권장 메시지 배너 -->
+<div id="edge-banner" class="edge-recommend-banner">
+    <div>
+        💡 <b>Microsoft Edge 웹브라우저</b>를 사용하시면 더 자연스러운 음성을 들으실 수 있습니다.
+    </div>
+    <a id="edge-link" href="#" class="edge-btn" onclick="openInEdge(event)">Edge로 열기</a>
+</div>
+
+<!-- 상단 타이틀 배너 -->
 <div class="header-banner">
     <h1>날마다 성경을 검토함</h1>
     <p>JW.ORG daily text reader with natural AI voice</p>
@@ -107,6 +146,25 @@
     let currentPrevDate = "";
     let currentNextDate = "";
     const synth = window.speechSynthesis;
+
+    // 현재 접속 브라우저가 Edge인지 검사
+    function checkEdgeBrowser() {
+        const userAgent = navigator.userAgent;
+        const isEdge = userAgent.includes("Edg/") || userAgent.includes("Edge/");
+        
+        if (!isEdge) {
+            const banner = document.getElementById('edge-banner');
+            banner.style.display = 'flex';
+        }
+    }
+
+    // Edge 브라우저로 열기 시도 함수
+    function openInEdge(e) {
+        e.preventDefault();
+        const currentUrl = window.location.href.replace(/^https?:\/\//, '');
+        // 모바일/PC Edge 스키마 호출 시도
+        window.location.href = "microsoft-edge-https://" + currentUrl;
+    }
 
     // 성구 표기를 TTS 발음용 한글로 변환하는 함수 (장/편, 절 발음교정)
     function convertBibleForTTS(text) {
@@ -152,7 +210,7 @@
 
     // 지정된 날짜의 성구 데이터를 로드하는 함수
     function loadDailyText(dateStr = '') {
-        stopSpeech(); // 날짜 이동 시 기존 읽기 정지
+        stopSpeech();
 
         document.getElementById('loading').style.display = 'block';
         document.getElementById('content-box').style.display = 'none';
@@ -169,12 +227,10 @@
                     currentPrevDate = data.prev_date;
                     currentNextDate = data.next_date;
 
-                    // 화면 표시
                     document.getElementById('date-text').innerText = data.date;
                     document.getElementById('scripture-text').innerText = data.scripture;
                     document.getElementById('body-text').innerText = data.content;
                     
-                    // 음성 변환 적용
                     let fullText = `${data.scripture}. ${data.content}`;
                     textToSpeech = convertBibleForTTS(fullText);
 
@@ -249,7 +305,8 @@
         speechSynthesis.onvoiceschanged = updateVoiceStatus;
     }
 
-    // 처음 로드 시 실행
+    // 페이지 시작 시 실행
+    checkEdgeBrowser();
     loadDailyText();
 </script>
 
