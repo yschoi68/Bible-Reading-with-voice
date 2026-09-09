@@ -8,38 +8,6 @@
         * { box-sizing: border-box; }
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #f4f6f8; }
         
-        /* Edge 권장 안내 배너 (기본 숨김) */
-        .edge-recommend-banner {
-            display: none;
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 0.92rem;
-            line-height: 1.5;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .edge-btn {
-            background-color: #0078d4;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            cursor: pointer;
-            margin-left: 10px;
-            white-space: nowrap;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .edge-btn:hover { background-color: #005a9e; }
-
-        /* 상단 타이틀 배너 스타일 */
         .header-banner {
             background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
             color: white;
@@ -59,18 +27,8 @@
             opacity: 0.12;
             transform: rotate(-15deg);
         }
-        .header-banner h1 {
-            margin: 0;
-            font-size: 1.6rem;
-            letter-spacing: -0.5px;
-            font-weight: 700;
-        }
-        .header-banner p {
-            margin: 8px 0 0 0;
-            font-size: 0.95rem;
-            opacity: 0.85;
-            font-weight: 300;
-        }
+        .header-banner h1 { margin: 0; font-size: 1.6rem; letter-spacing: -0.5px; font-weight: 700; }
+        .header-banner p { margin: 8px 0 0 0; font-size: 0.95rem; opacity: 0.85; font-weight: 300; }
 
         .card { 
             background: white; 
@@ -87,7 +45,6 @@
         
         .date { color: #4a5568; font-weight: bold; font-size: 1.15rem; text-align: center; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
         
-        /* 상단 플레이어 및 성별 선택 영역 */
         .player-control {
             display: flex;
             flex-direction: column;
@@ -99,69 +56,32 @@
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
-        .btn-row {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            width: 100%;
-        }
+        .btn-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
         .play-btn { padding: 10px 24px; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-play { background-color: #2b6cb0; color: white; }
         .btn-play:hover { background-color: #2c5282; }
         .btn-stop { background-color: #e53e3e; color: white; }
         .btn-stop:hover { background-color: #c53030; }
 
-        /* 성별 선택 토글 스타일 */
-        .gender-selector {
-            display: flex;
-            gap: 10px;
-            background: #edf2f7;
-            padding: 4px;
-            border-radius: 20px;
-        }
-        .gender-btn {
-            border: none;
-            background: none;
-            padding: 6px 16px;
-            border-radius: 16px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: #4a5568;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .gender-btn.active {
-            background-color: #2b6cb0;
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .gender-selector { display: flex; gap: 10px; background: #edf2f7; padding: 4px; border-radius: 20px; }
+        .gender-btn { border: none; background: none; padding: 6px 16px; border-radius: 16px; font-size: 0.9rem; font-weight: bold; color: #4a5568; cursor: pointer; transition: 0.2s; }
+        .gender-btn.active { background-color: #2b6cb0; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
         .scripture { font-size: 1.15rem; font-weight: bold; color: #1a365d; background: #ebf8ff; padding: 18px; border-left: 5px solid #3182ce; border-radius: 6px; margin-bottom: 18px; line-height: 1.6; }
         .content { line-height: 1.85; color: #2d3748; font-size: 1.05rem; }
         
         .voice-info { font-size: 0.85rem; color: #718096; margin-top: 20px; background: #f8fafc; padding: 8px 12px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center; }
-        
         #loading { text-align: center; padding: 40px; font-weight: bold; color: #4a5568; }
     </style>
 </head>
 <body>
 
-<!-- Edge 권장 메시지 배너 -->
-<div id="edge-banner" class="edge-recommend-banner">
-    <div>
-        💡 <b>Microsoft Edge 웹브라우저</b>를 사용하시면 자연스러운 고품질 AI 음성을 들으실 수 있습니다.
-    </div>
-    <button class="edge-btn" onclick="openInEdge(event)">Edge로 열기</button>
-</div>
-
-<!-- 상단 타이틀 배너 -->
 <div class="header-banner">
     <h1>날마다 성경을 검토함</h1>
-    <p>JW.ORG daily text reader with natural AI voice</p>
+    <p>JW.ORG daily text reader with Microsoft Edge AI Voice</p>
 </div>
 
 <div class="card">
-    <!-- 날짜 이동 내비게이션 바 -->
     <div class="nav-bar">
         <button class="nav-btn" onclick="changeDate(currentPrevDate)">◀ 이전날</button>
         <button class="nav-btn nav-today" onclick="changeDate('')">오늘</button>
@@ -171,132 +91,58 @@
     <div id="loading">성구를 읽어오는 중입니다...</div>
 
     <div id="content-box" style="display: none;">
-        <!-- 날짜 표시 -->
         <div id="date-text" class="date"></div>
         
-        <!-- 상단 플레이어 및 목소리 성별 선택 영역 -->
         <div class="player-control">
             <div class="btn-row">
-                <button class="play-btn btn-play" onclick="playSpeech()">▶️ 읽기</button>
-                <button class="play-btn btn-stop" onclick="stopSpeech()">⏹️ 정지</button>
+                <button id="play-btn" class="play-btn btn-play" onclick="togglePlay()">▶️ 읽기</button>
+                <button class="play-btn btn-stop" onclick="stopAudio()">⏹️ 정지</button>
             </div>
             
-            <!-- 남성 / 여성 목소리 선택 버튼 -->
             <div class="gender-selector">
-                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 목소리</button>
-                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 목소리</button>
+                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 AI (인준)</button>
+                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 AI (선히)</button>
             </div>
         </div>
 
-        <!-- 성구 구절 및 본문 내용 -->
         <div id="scripture-text" class="scripture"></div>
         <div id="body-text" class="content"></div>
         
-        <!-- 사용 음성 표시 -->
-        <div id="voice-name" class="voice-info">사용 중인 음성 엔진 확인 중...</div>
+        <div id="voice-name" class="voice-info">🎙️ Microsoft Edge 고품질 AI 남성 음성 (ko-KR-InJoonNeural)</div>
     </div>
 </div>
 
+<!-- 오디오 태그 -->
+<audio id="audio-player" style="display:none;"></audio>
+
 <script>
-    let textToSpeech = ""; 
+    let rawFullText = ""; 
     let currentPrevDate = "";
     let currentNextDate = "";
-    let currentGender = "male"; // 기본값: 남성 목소리
-    const synth = window.speechSynthesis;
+    let currentGender = "male";
+    
+    const audioPlayer = document.getElementById('audio-player');
+    const playBtn = document.getElementById('play-btn');
 
-    // 현재 접속 브라우저가 Edge인지 검사
-    function checkEdgeBrowser() {
-        const userAgent = navigator.userAgent;
-        const isEdge = userAgent.includes("Edg/") || userAgent.includes("Edge/");
-        
-        if (!isEdge) {
-            const banner = document.getElementById('edge-banner');
-            banner.style.display = 'flex';
-        }
-    }
-
-    // 모바일/PC 스마트 Edge 전환 함수
-    function openInEdge(e) {
-        if (e) e.preventDefault();
-        
-        const currentUrl = window.location.href;
-        const userAgent = navigator.userAgent.toLowerCase();
-
-        if (userAgent.includes('android')) {
-            const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
-            window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.microsoft.emmx;end`;
-        } else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
-            const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
-            window.location.href = `microsoft-edge-https://${cleanUrl}`;
-        } else {
-            const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
-            window.location.href = `ms-edge:https://${cleanUrl}`;
-        }
-
-        setTimeout(() => {
-            alert("Edge 브라우저가 직접 열리지 않는 경우, 주소를 복사하여 Microsoft Edge 브라우저에 직접 붙여넣어 주세요.\n\n주소: " + currentUrl);
-        }, 2000);
-    }
-
-    // 성별 선택 함수
     function setGender(gender) {
         currentGender = gender;
-        
         document.getElementById('btn-male').classList.toggle('active', gender === 'male');
         document.getElementById('btn-female').classList.toggle('active', gender === 'female');
         
-        updateVoiceStatus();
+        const infoElem = document.getElementById('voice-name');
+        if (gender === 'male') {
+            infoElem.innerText = "🎙️ Microsoft Edge 고품질 AI 남성 음성 (ko-KR-InJoonNeural)";
+        } else {
+            infoElem.innerText = "🎙️ Microsoft Edge 고품질 AI 여성 음성 (ko-KR-SunHiNeural)";
+        }
 
-        // 재생 중일 때 성별을 바꾸면 즉시 선택한 목소리로 다시 재생
-        if (synth && synth.speaking) {
+        if (!audioPlayer.paused) {
             playSpeech();
         }
     }
 
-    // 성구 표기를 TTS 발음용 한글로 변환하는 함수
-    function convertBibleForTTS(text) {
-        if (!text) return text;
-
-        function numToKor(numStr) {
-            const units = ['', '십', '백', '천'];
-            const digits = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
-            let n = parseInt(numStr, 10);
-            if (isNaN(n)) return numStr;
-            if (n === 0) return '영';
-            
-            let sNum = n.toString();
-            let len = sNum.length;
-            let result = '';
-
-            for (let i = 0; i < len; i++) {
-                let d = parseInt(sNum[i], 10);
-                let unitIdx = len - i - 1;
-                if (d !== 0) {
-                    if (d === 1 && unitIdx > 0) {
-                        result += units[unitIdx];
-                    } else {
-                        result += digits[d] + units[unitIdx];
-                    }
-                }
-            }
-            return result;
-        }
-
-        return text.replace(/([가-힣]+)?\s*(\d+)\s*:\s*([\d\s,-]+)/g, function(match, book, ch, v) {
-            let bookName = book ? book.trim() : '';
-            let unit = (bookName.includes('시편') || bookName.includes('시')) ? '편' : '장';
-            
-            let chKor = numToKor(ch);
-            let vKor = v.replace(/\d+/g, function(digit) {
-                return numToKor(digit);
-            });
-
-            return `${bookName} ${chKor}${unit} ${vKor}절`;
-        });
-    }
-
     function loadDailyText(dateStr = '') {
-        stopSpeech();
+        stopAudio();
 
         document.getElementById('loading').style.display = 'block';
         document.getElementById('content-box').style.display = 'none';
@@ -317,13 +163,10 @@
                     document.getElementById('scripture-text').innerText = data.scripture;
                     document.getElementById('body-text').innerText = data.content;
                     
-                    let fullText = `${data.scripture}. ${data.content}`;
-                    textToSpeech = convertBibleForTTS(fullText);
+                    rawFullText = `${data.scripture}. ${data.content}`;
 
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('content-box').style.display = 'block';
-
-                    setTimeout(updateVoiceStatus, 300);
                 } else {
                     document.getElementById('loading').innerText = "성구를 가져오지 못했습니다.";
                 }
@@ -337,93 +180,41 @@
         loadDailyText(targetDate);
     }
 
-    // 선택된 성별에 맞는 최고의 한국어 음성 탐색
-    function getSelectedVoice() {
-        const voices = synth.getVoices();
-        if (!voices || voices.length === 0) return null;
-
-        const koVoices = voices.filter(v => v.lang.includes('ko') || v.lang.includes('KO'));
-        if (koVoices.length === 0) return voices[0];
-
-        if (currentGender === 'male') {
-            // 1. Edge 남성 대표 음성 (InJoon, BongJin)
-            let male = koVoices.find(v => v.name.includes('InJoon') || v.name.includes('BongJin'));
-            if (male) return male;
-
-            // 2. Male 키워드 검색
-            male = koVoices.find(v => v.name.toLowerCase().includes('male') || v.name.includes('남성'));
-            if (male) return male;
-
-            // 3. Google 남성 음성
-            male = koVoices.find(v => v.name.includes('Google') && v.name.toLowerCase().includes('male'));
-            if (male) return male;
-
-            // 4. 여성 음성을 제외한 음성
-            male = koVoices.find(v => !v.name.includes('SunHi') && !v.name.includes('JiMin') && !v.name.includes('Heami'));
-            if (male) return male;
-
-            return koVoices[0];
+    function togglePlay() {
+        if (!audioPlayer.paused) {
+            audioPlayer.pause();
+            playBtn.innerText = "▶️ 읽기";
         } else {
-            // 1. Edge 여성 대표 음성 (SunHi, JiMin)
-            let female = koVoices.find(v => v.name.includes('SunHi') || v.name.includes('JiMin') || v.name.includes('Heami'));
-            if (female) return female;
-
-            // 2. Female 키워드 검색
-            female = koVoices.find(v => v.name.toLowerCase().includes('female') || v.name.includes('여성'));
-            if (female) return female;
-
-            return koVoices[0];
-        }
-    }
-
-    function updateVoiceStatus() {
-        const voice = getSelectedVoice();
-        const infoElem = document.getElementById('voice-name');
-        const genderText = currentGender === 'male' ? '👨 남성' : '👩 여성';
-        
-        if (voice) {
-            infoElem.innerText = `🎙️ 적용된 음성 (${genderText}): ${voice.name}`;
-        } else {
-            infoElem.innerText = `🎙️ ${genderText} 음성을 찾는 중...`;
+            playSpeech();
         }
     }
 
     function playSpeech() {
-        if (!synth) {
-            alert("이 브라우저는 음성 재생을 지원하지 않습니다.");
-            return;
-        }
+        if (!rawFullText) return;
 
-        synth.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(textToSpeech);
-        const selectedVoice = getSelectedVoice();
-
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        }
-
-        utterance.lang = 'ko-KR';
-        utterance.rate = 0.92;
+        playBtn.innerText = "⏳ 음성 생성 중...";
         
-        // 남성일 때는 피치를 약간 낮춰 무게감 형성, 여성일 때는 정톤 사용
-        utterance.pitch = currentGender === 'male' ? 0.88 : 1.0;
-
-        synth.speak(utterance);
+        const ttsUrl = `/api/tts?gender=${currentGender}&text=${encodeURIComponent(rawFullText)}`;
+        
+        audioPlayer.src = ttsUrl;
+        audioPlayer.play().then(() => {
+            playBtn.innerText = "⏸️ 일시정지";
+        }).catch(err => {
+            alert("음성 재생 실패: " + err);
+            playBtn.innerText = "▶️ 읽기";
+        });
     }
 
-    function stopSpeech() {
-        if (synth) {
-            synth.cancel();
-        }
+    function stopAudio() {
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+        playBtn.innerText = "▶️ 읽기";
     }
 
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = updateVoiceStatus;
-    }
+    audioPlayer.onended = function() {
+        playBtn.innerText = "▶️ 읽기";
+    };
 
-    // 페이지 시작 시 실행
-    checkEdgeBrowser();
     loadDailyText();
 </script>
 
