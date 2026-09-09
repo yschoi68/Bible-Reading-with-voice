@@ -118,9 +118,9 @@
 <!-- Edge 권장 메시지 배너 -->
 <div id="edge-banner" class="edge-recommend-banner">
     <div>
-        💡 <b>Microsoft Edge 웹브라우저</b>를 사용하시면 더 자연스러운 음성을 들으실 수 있습니다.
+        💡 <b>Microsoft Edge 웹브라우저</b>를 사용하시면 자연스러운 남성 AI 음성을 들으실 수 있습니다.
     </div>
-    <a id="edge-link" href="#" class="edge-btn" onclick="openInEdge(event)">Edge로 열기</a>
+    <button class="edge-btn" onclick="openInEdge(event)">Edge로 열기</button>
 </div>
 
 <!-- 상단 타이틀 배너 -->
@@ -175,11 +175,33 @@
         }
     }
 
-    // Edge 브라우저로 열기 시도 함수
+    // 모바일/PC 스마트 Edge 전환 함수
     function openInEdge(e) {
-        e.preventDefault();
-        const currentUrl = window.location.href.replace(/^https?:\/\//, '');
-        window.location.href = "microsoft-edge-https://" + currentUrl;
+        if (e) e.preventDefault();
+        
+        const currentUrl = window.location.href;
+        const userAgent = navigator.userAgent.toLowerCase();
+
+        // 1. 안드로이드 환경 (카카오톡, 크롬 등)
+        if (userAgent.includes('android')) {
+            const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
+            window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.microsoft.emmx;end`;
+        } 
+        // 2. iOS (아이폰/아이패드)
+        else if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+            const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
+            window.location.href = `microsoft-edge-https://${cleanUrl}`;
+        } 
+        // 3. PC 환경 (Windows / Mac)
+        else {
+            const cleanUrl = currentUrl.replace(/^https?:\/\//, '');
+            window.location.href = `ms-edge:https://${cleanUrl}`;
+        }
+
+        // 혹시 앱 전환 실패 시 복사 안내
+        setTimeout(() => {
+            alert("Edge 브라우저가 직접 열리지 않는 경우, 주소를 복사하여 Microsoft Edge 브라우저에 직접 붙여넣어 주세요.\n\n주소: " + currentUrl);
+        }, 2000);
     }
 
     // 성구 표기를 TTS 발음용 한글로 변환하는 함수
@@ -224,7 +246,6 @@
         });
     }
 
-    // 지정된 날짜의 성구 데이터를 로드하는 함수
     function loadDailyText(dateStr = '') {
         stopSpeech();
 
@@ -267,38 +288,40 @@
         loadDailyText(targetDate);
     }
 
-    // 남성 목소리 최우선 선택
-    function getEdgeBestVoice() {
+    // 남성 목소리 전용 선별 함수 (정밀 탐색)
+    function getMaleVoice() {
         const voices = synth.getVoices();
-        
-        let bestVoice = voices.find(v => v.lang.includes('ko') && (v.name.includes('InJoon') || v.name.includes('InJoonOnline')));
-        
-        if (!bestVoice) {
-            bestVoice = voices.find(v => v.lang.includes('ko') && (v.name.includes('Male') || v.name.includes('남성')));
-        }
-        
-        if (!bestVoice) {
-            bestVoice = voices.find(v => v.lang.includes('ko') && v.name.includes('Google') && v.name.includes('Male'));
-        }
+        if (!voices || voices.length === 0) return null;
 
-        if (!bestVoice) {
-            bestVoice = voices.find(v => v.lang.includes('ko') && v.name.includes('Natural'));
-        }
+        const koVoices = voices.filter(v => v.lang.includes('ko') || v.lang.includes('KO'));
 
-        if (!bestVoice) {
-            bestVoice = voices.find(v => v.lang.includes('ko'));
-        }
+        // 1. Edge 한국어 대표 남성 음성 (InJoon, BongJin)
+        let target = koVoices.find(v => v.name.includes('InJoon') || v.name.includes('BongJin'));
+        if (target) return target;
 
-        return bestVoice;
+        // 2. 남성 키워드가 직접 들어간 음성
+        target = koVoices.find(v => v.name.toLowerCase().includes('male') || v.name.includes('남성'));
+        if (target) return target;
+
+        // 3. 구글 한국어 남성 음성
+        target = koVoices.find(v => v.name.includes('Google') && (v.name.includes('Male') || v.name.includes('male')));
+        if (target) return target;
+
+        // 4. Edge 고품질 Natural 음성 중 남성 선별 시도
+        target = koVoices.find(v => v.name.includes('Natural') && !v.name.includes('SunHi') && !v.name.includes('JiMin'));
+        if (target) return target;
+
+        // 5. 비상시 일반 한국어 첫번째 음성
+        return koVoices[0] || voices[0];
     }
 
     function updateVoiceStatus() {
-        const voice = getEdgeBestVoice();
+        const voice = getMaleVoice();
         const infoElem = document.getElementById('voice-name');
         if (voice) {
             infoElem.innerText = "🎙️ 적용된 음성: " + voice.name;
         } else {
-            infoElem.innerText = "🎙️ 기본 한국어 음성 사용 중";
+            infoElem.innerText = "🎙️ 기본 한국어 음성 준비 중...";
         }
     }
 
@@ -311,15 +334,15 @@
         synth.cancel();
 
         const utterance = new SpeechSynthesisUtterance(textToSpeech);
-        const selectedVoice = getEdgeBestVoice();
+        const selectedVoice = getMaleVoice();
 
         if (selectedVoice) {
             utterance.voice = selectedVoice;
         }
 
         utterance.lang = 'ko-KR';
-        utterance.rate = 0.95;
-        utterance.pitch = 0.95;
+        utterance.rate = 0.92;  // 정갈한 속도
+        utterance.pitch = 0.90; // 남성다운 약간 낮은 피치 톤
 
         synth.speak(utterance);
     }
