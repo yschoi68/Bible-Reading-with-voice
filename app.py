@@ -1,68 +1,150 @@
-from flask import Flask, render_template, jsonify, request
+import io
+import asyncio
+from flask import Flask, render_template, request, jsonify, send_file
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+import re
+import edge_tts
 
 app = Flask(__name__)
 
-def fetch_jw_daily_text(target_date=None):
-    """지정한 날짜(YYYY-MM-DD)의 일용할 성구를 WOL 사이트에서 가져오는 함수"""
-    if target_date:
+def convert_bible_for_tts(text):
+    if not text:
+        return text
+
+    def num_to_kor(num_str):
+        units = ['', '십', '백', '천']
+        digits = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구']
         try:
-            date_obj = datetime.strptime(target_date, "%Y-%m-%d")
+            n = int(num_str)
         except ValueError:
-            date_obj = datetime.now()
-    else:
-        date_obj = datetime.now()
+            return num_str
+        if n == 0:
+            return '영'
+        s_num = str(n)
+        length = len(s_num)
+        result = ''
+        for i, char in enumerate(s_num):
+            d = int(char)
+            unit_idx = length - i - 1
+            if d != 0:
+                if d == 1 and unit_idx > 0:
+                    result += units[unit_idx]
+                else:
+                    result += digits[d] + units[unit_idx]
+        return result
 
-    url = f"https://wol.jw.org/ko/wol/h/r8/lp-ko/{date_obj.year}/{date_obj.month}/{date_obj.day}"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+    def replace_match(match):
+        book = match.group(1) or ''
+        ch = match.group(2)
+        v = match.group(3)
+        book_name = book.strip()
+        unit = '편' if ('시편' in book_name or book_name == '시') else '장'
+        ch_kor = num_to_kor(ch)
+        v_kor = re.sub(r'\d+', lambda m: num_to_kor(m.group(0)), v)
+        return f"{book_name} {ch_kor}{unit} {v_kor}절"
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+    return re.sub(r'([가-힣]+)?\s*(\d+)\s*:\s*([\d\s,-]+)', replace_match, text)
 
-        date_element = soup.find("h2")
-        date_text = date_element.get_text(strip=True) if date_element else date_obj.strftime("%Y년 %m월 %d일")
-
-        theme_elem = soup.find("p", class_="themeScrp")
-        theme_text = theme_elem.get_text(strip=True) if theme_elem else "성구 구절을 찾지 못했습니다."
-
-        sb_elem = soup.find("div", class_="sb") or soup.find("p", class_="sb")
-        body_text = sb_elem.get_text(strip=True) if sb_elem else "해설 내용을 찾지 못했습니다."
-
-        prev_date = (date_obj - timedelta(days=1)).strftime("%Y-%m-%d")
-        next_date = (date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
-        current_date_str = date_obj.strftime("%Y-%m-%d")
-
-        return {
-            "success": True,
-            "current_date": current_date_str,
-            "prev_date": prev_date,
-            "next_date": next_date,
-            "date": date_text,
-            "scripture": theme_text,
-            "content": body_text
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": f"데이터 로딩 실패: {str(e)}"
-        }
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
 @app.route('/api/daily-text')
-def get_daily_text_api():
-    date_param = request.args.get('date', None)
-    data = fetch_jw_daily_text(date_param)
-    return jsonify(data)
+def get_daily_text():
+    date_param = request.args.get('date', '')
+    if date_param:
+        try:
+            target_date = datetime.strptime(date_param, '%Y-%m-%d')
+        except ValueError:
+            target_date = datetime.now()
+    else:
+        target_date = datetime.now()
+
+    year = target_date.strftime('%Y')
+    month = target_date.strftime('%m')
+    day = target_date.strftime('%d')
+    url = f"https://wol.jw.org/ko/wol/h/r8/lp-ko/{year}/{month}/{day}"
+
+    headers = {'User-Agent': 'Mozilla/5.0'}
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.encoding = 'utf-8'
+
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            items = soup.select('.tabContent .items .item')
+            
+            target_item = None
+            for item in items:
+                header = item.select_one('header h2')
+                if header:
+                    target_item = item
+                    break
+
+            if target_item:
+                date_text = target_item.select_one('header h2').text.strip()
+                scripture_text = target_item.select_one('.pGroup .themeScrp').text.strip()
+                
+                body_paragraphs = target_item.select('.pGroup .sb')
+                content_text = "\n\n".join([p.text.strip() for p in body_paragraphs])
+
+                prev_date = (target_date - timedelta(days=1)).strftime('%Y-%m-%d')
+                next_date = (target_date + timedelta(days=1)).strftime('%Y-%m-%d')
+
+                return jsonify({
+                    'success': True,
+                    'date': date_text,
+                    'scripture': scripture_text,
+                    'content': content_text,
+                    'prev_date': prev_date,
+                    'next_date': next_date
+                })
+
+        return jsonify({'success': False, 'error': '데이터를 찾을 수 없습니다.'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/tts')
+def generate_tts():
+    text = request.args.get('text', '')
+    gender = request.args.get('gender', 'male')
+
+    if not text:
+        return "No text provided", 400
+
+    # 발음 보정
+    formatted_text = convert_bible_for_tts(text)
+
+    # Edge AI 고품질 보이스 선택
+    # 남성: InJoon, 여성: SunHi
+    voice = 'ko-KR-InJoonNeural' if gender == 'male' else 'ko-KR-SunHiNeural'
+
+    async def _generate():
+        communicate = edge_tts.Communicate(formatted_text, voice, rate="-5%", pitch="-2Hz" if gender == 'male' else "+0Hz")
+        audio_data = b""
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_data += chunk["data"]
+        return audio_data
+
+    try:
+        # 비동기 오디오 생성
+        audio_bytes = asyncio.run(_generate())
+        return send_file(
+            io.BytesIO(audio_bytes),
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="speech.mp3"
+        )
+    except Exception as e:
+        return str(e), 500
+
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
