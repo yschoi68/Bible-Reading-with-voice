@@ -1,7 +1,7 @@
 import io
 import re
 import asyncio
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, Response
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -118,39 +118,39 @@ def get_daily_text():
         return jsonify({'success': False, 'error': str(e)})
 
 
-async def get_edge_audio_bytes(text):
-    # 가장 자연스러운 한국어 여성 음성 고정
-    communicator = edge_tts.Communicate(text, "ko-KR-SunHiNeural")
-    fp = io.BytesIO()
+async def generate_edge_tts_stream(text, voice):
+    communicator = edge_tts.Communicate(text, voice)
     async for chunk in communicator.stream():
         if chunk["type"] == "audio":
-            fp.write(chunk["data"])
-    fp.seek(0)
-    return fp
+            yield chunk["data"]
 
 
 @app.route('/api/tts')
 def generate_tts():
     cache_id = request.args.get('cache_id', '')
+    gender = request.args.get('gender', 'female')
 
     text = TEXT_CACHE.get(cache_id, '성경 텍스트를 불러올 수 없습니다.')
     formatted_text = convert_bible_for_tts(text)
 
-    try:
+    # 남성: 인준 / 여성: 선희
+    voice = "ko-KR-InJoonNeural" if gender == "male" else "ko-KR-SunHiNeural"
+
+    def stream_audio():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        audio_stream = loop.run_until_complete(get_edge_audio_bytes(formatted_text))
-        loop.close()
+        try:
+            gen = generate_edge_tts_stream(formatted_text, voice)
+            while True:
+                try:
+                    chunk = loop.run_until_complete(gen.__anext__())
+                    yield chunk
+                except StopAsyncIteration:
+                    break
+        finally:
+            loop.close()
 
-        return send_file(
-            audio_stream,
-            mimetype="audio/mpeg",
-            as_attachment=False,
-            download_name="speech.mp3"
-        )
-    except Exception as e:
-        print("TTS Generation Error:", str(e))
-        return str(e), 500
+    return Response(stream_audio(), mimetype="audio/mpeg")
 
 
 if __name__ == '__main__':
