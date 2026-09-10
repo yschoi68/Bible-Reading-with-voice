@@ -1,15 +1,14 @@
 import io
-import asyncio
 from flask import Flask, render_template, request, jsonify, send_file
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import re
-import edge_tts
+from gtts import gTTS
 
 app = Flask(__name__)
 
-# 임시 텍스트 캐시 메모리
+# 텍스트 메모리 캐시
 TEXT_CACHE = {}
 
 def convert_bible_for_tts(text):
@@ -100,7 +99,6 @@ def get_daily_text():
                 prev_date = (target_date - timedelta(days=1)).strftime('%Y-%m-%d')
                 next_date = (target_date + timedelta(days=1)).strftime('%Y-%m-%d')
 
-                # 재생용 전체 텍스트 캐싱
                 full_text = f"{scripture_text}. {content_text}"
                 cache_id = f"{year}{month}{day}"
                 TEXT_CACHE[cache_id] = full_text
@@ -120,48 +118,31 @@ def get_daily_text():
         return jsonify({'success': False, 'error': str(e)})
 
 
-async def _generate_audio_bytes(text, voice):
-    communicate = edge_tts.Communicate(text, voice, rate="-4%")
-    audio_data = b""
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_data += chunk["data"]
-    return audio_data
-
-
 @app.route('/api/tts')
 def generate_tts():
     cache_id = request.args.get('cache_id', '')
     gender = request.args.get('gender', 'male')
 
-    text = TEXT_CACHE.get(cache_id, '')
-    if not text:
-        text = request.args.get('text', '성경 텍스트를 불러오지 못했습니다.')
-
-    # 발음 보정
+    text = TEXT_CACHE.get(cache_id, '성경 텍스트를 불러올 수 없습니다.')
     formatted_text = convert_bible_for_tts(text)
 
-    # 남성(InJoon), 여성(SunHi)
-    voice = 'ko-KR-InJoonNeural' if gender == 'male' else 'ko-KR-SunHiNeural'
-
     try:
-        # 안전한 새로운 비동기 이벤트 루프 실행
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        audio_bytes = loop.run_until_complete(_generate_audio_bytes(formatted_text, voice))
-        loop.close()
-
-        if not audio_bytes:
-            return "Audio generation failed", 500
+        # 안정적인 Google TTS 엔진 사용 (남성/여성 억양 구분)
+        tld = 'co.kr' if gender == 'male' else 'com'
+        tts = gTTS(text=formatted_text, lang='ko', tld=tld, slow=False)
+        
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
 
         return send_file(
-            io.BytesIO(audio_bytes),
+            fp,
             mimetype="audio/mpeg",
             as_attachment=False,
             download_name="speech.mp3"
         )
     except Exception as e:
-        print("TTS Error:", e)
+        print("TTS Error:", str(e))
         return str(e), 500
 
 
