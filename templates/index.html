@@ -29,9 +29,7 @@
         
         .player-control {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
+            justify-content: center;
             margin-bottom: 20px;
             background: #f8fafc;
             padding: 15px;
@@ -39,14 +37,13 @@
             border: 1px solid #e2e8f0;
         }
         .btn-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
-        .play-btn { padding: 10px 24px; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .play-btn { padding: 12px 28px; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn-play { background-color: #2b6cb0; color: white; }
         .btn-stop { background-color: #e53e3e; color: white; }
 
         .scripture { font-size: 1.15rem; font-weight: bold; color: #1a365d; background: #ebf8ff; padding: 18px; border-left: 5px solid #3182ce; border-radius: 6px; margin-bottom: 18px; line-height: 1.6; }
         .content { line-height: 1.85; color: #2d3748; font-size: 1.05rem; }
         
-        .voice-info { font-size: 0.85rem; color: #718096; margin-top: 20px; background: #f8fafc; padding: 8px 12px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center; }
         #loading { text-align: center; padding: 40px; font-weight: bold; color: #4a5568; }
     </style>
 </head>
@@ -78,19 +75,18 @@
 
         <div id="scripture-text" class="scripture"></div>
         <div id="body-text" class="content"></div>
-        
-        <div id="voice-name" class="voice-info">🎙️ 기기 내장 Web Speech API 엔진 사용 중</div>
     </div>
 </div>
 
+<audio id="audio-player" style="display:none;"></audio>
+
 <script>
-    let currentSpeechText = ""; 
+    let currentCacheId = ""; 
     let currentPrevDate = "";
     let currentNextDate = "";
-    let isPlaying = false;
-
+    
+    const audioPlayer = document.getElementById('audio-player');
     const playBtn = document.getElementById('play-btn');
-    const synth = window.speechSynthesis;
 
     function loadDailyText(dateStr = '') {
         stopAudio();
@@ -109,7 +105,7 @@
                 if(data.success) {
                     currentPrevDate = data.prev_date;
                     currentNextDate = data.next_date;
-                    currentSpeechText = data.speech_text;
+                    currentCacheId = data.cache_id;
 
                     document.getElementById('date-text').innerText = data.date;
                     document.getElementById('scripture-text').innerText = data.scripture;
@@ -131,52 +127,42 @@
     }
 
     function togglePlay() {
-        if (isPlaying) {
-            if (synth.paused) {
-                synth.resume();
-                playBtn.innerText = "⏸️ 일시정지";
-            } else {
-                synth.pause();
-                playBtn.innerText = "▶️ 다시 읽기";
-            }
+        if (!audioPlayer.paused) {
+            audioPlayer.pause();
+            playBtn.innerText = "▶️ 읽기";
         } else {
             playSpeech();
         }
     }
 
     function playSpeech() {
-        if (!currentSpeechText) return;
+        if (!currentCacheId) return;
 
-        synth.cancel(); // 이전 음성 초기화
+        playBtn.innerText = "⏳ 음성 생성 중...";
+        
+        const ttsUrl = `/api/tts?cache_id=${currentCacheId}&t=${new Date().getTime()}`;
+        
+        audioPlayer.src = ttsUrl;
+        audioPlayer.load();
 
-        const utterance = new SpeechSynthesisUtterance(currentSpeechText);
-        utterance.lang = 'ko-KR';
-        utterance.rate = 0.95; // 읽기 속도 (약간 천천히)
-
-        utterance.onstart = function() {
-            isPlaying = true;
+        audioPlayer.play().then(() => {
             playBtn.innerText = "⏸️ 일시정지";
-        };
-
-        utterance.onend = function() {
-            isPlaying = false;
+        }).catch(err => {
+            console.error(err);
+            alert("음성을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
             playBtn.innerText = "▶️ 읽기";
-        };
-
-        utterance.onerror = function(e) {
-            console.error("TTS Error:", e);
-            isPlaying = false;
-            playBtn.innerText = "▶️ 읽기";
-        };
-
-        synth.speak(utterance);
+        });
     }
 
     function stopAudio() {
-        synth.cancel();
-        isPlaying = false;
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
         playBtn.innerText = "▶️ 읽기";
     }
+
+    audioPlayer.onended = function() {
+        playBtn.innerText = "▶️ 읽기";
+    };
 
     loadDailyText();
 </script>
