@@ -1,14 +1,14 @@
 import io
+import re
+import asyncio
 from flask import Flask, render_template, request, jsonify, send_file
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-import re
-from gtts import gTTS
+import edge_tts
 
 app = Flask(__name__)
 
-# 텍스트 메모리 캐시
 TEXT_CACHE = {}
 
 def convert_bible_for_tts(text):
@@ -70,7 +70,7 @@ def get_daily_text():
     month = str(target_date.month)
     day = str(target_date.day)
 
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     json_url = f"https://wol.jw.org/wol/dt/r8/lp-ko/{year}/{month}/{day}"
 
     try:
@@ -118,6 +118,15 @@ def get_daily_text():
         return jsonify({'success': False, 'error': str(e)})
 
 
+async def generate_edge_tts(text, voice_name):
+    communicate = edge_tts.Communicate(text, voice_name)
+    audio_data = b""
+    async for chunk in communicate.stream():
+        if chunk["type"] == "audio":
+            audio_data += chunk["data"]
+    return audio_data
+
+
 @app.route('/api/tts')
 def generate_tts():
     cache_id = request.args.get('cache_id', '')
@@ -126,17 +135,18 @@ def generate_tts():
     text = TEXT_CACHE.get(cache_id, '성경 텍스트를 불러올 수 없습니다.')
     formatted_text = convert_bible_for_tts(text)
 
+    # 남성/여성 고품질 자연 음성 지정
+    voice_name = "ko-KR-InJoonNeural" if gender == "male" else "ko-KR-SunHiNeural"
+
     try:
-        # 안정적인 Google TTS 엔진 사용 (남성/여성 억양 구분)
-        tld = 'co.kr' if gender == 'male' else 'com'
-        tts = gTTS(text=formatted_text, lang='ko', tld=tld, slow=False)
-        
-        fp = io.BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
+        # 비동기 함수 실행
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        audio_bytes = loop.run_until_complete(generate_edge_tts(formatted_text, voice_name))
+        loop.close()
 
         return send_file(
-            fp,
+            io.BytesIO(audio_bytes),
             mimetype="audio/mpeg",
             as_attachment=False,
             download_name="speech.mp3"
