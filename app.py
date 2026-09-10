@@ -1,8 +1,11 @@
-from flask import Flask, render_template, request, jsonify
+import io
+import re
+import asyncio
+from flask import Flask, render_template, request, jsonify, send_file
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-import re
+import edge_tts
 
 app = Flask(__name__)
 
@@ -97,21 +100,57 @@ def get_daily_text():
                 next_date = (target_date + timedelta(days=1)).strftime('%Y-%m-%d')
 
                 full_text = f"{scripture_text}. {content_text}"
-                formatted_speech = convert_bible_for_tts(full_text)
+                cache_id = f"{year}{month}{day}"
+                TEXT_CACHE[cache_id] = full_text
 
                 return jsonify({
                     'success': True,
                     'date': date_text,
                     'scripture': scripture_text,
                     'content': content_text,
-                    'speech_text': formatted_speech,
                     'prev_date': prev_date,
-                    'next_date': next_date
+                    'next_date': next_date,
+                    'cache_id': cache_id
                 })
 
         return jsonify({'success': False, 'error': '데이터를 가져오지 못했습니다.'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+async def get_edge_audio_bytes(text):
+    # 가장 자연스러운 한국어 여성 음성 고정
+    communicator = edge_tts.Communicate(text, "ko-KR-SunHiNeural")
+    fp = io.BytesIO()
+    async for chunk in communicator.stream():
+        if chunk["type"] == "audio":
+            fp.write(chunk["data"])
+    fp.seek(0)
+    return fp
+
+
+@app.route('/api/tts')
+def generate_tts():
+    cache_id = request.args.get('cache_id', '')
+
+    text = TEXT_CACHE.get(cache_id, '성경 텍스트를 불러올 수 없습니다.')
+    formatted_text = convert_bible_for_tts(text)
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        audio_stream = loop.run_until_complete(get_edge_audio_bytes(formatted_text))
+        loop.close()
+
+        return send_file(
+            audio_stream,
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="speech.mp3"
+        )
+    except Exception as e:
+        print("TTS Generation Error:", str(e))
+        return str(e), 500
 
 
 if __name__ == '__main__':
