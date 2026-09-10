@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>날마다 성경을 검토함 (Edge AI 음성)</title>
+    <title>날마다 성경을 검토함 (AI 음성)</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #f4f6f8; }
@@ -78,7 +78,7 @@
 
 <div class="header-banner">
     <h1>날마다 성경을 검토함</h1>
-    <p>JW.ORG daily text reader with Microsoft Edge AI Voice</p>
+    <p>JW.ORG daily text reader with Google AI Voice</p>
 </div>
 
 <div class="card">
@@ -100,15 +100,15 @@
             </div>
             
             <div class="gender-selector">
-                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 AI (인준)</button>
-                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 AI (선히)</button>
+                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 목소리</button>
+                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 목소리</button>
             </div>
         </div>
 
         <div id="scripture-text" class="scripture"></div>
         <div id="body-text" class="content"></div>
         
-        <div id="voice-name" class="voice-info">🎙️ Microsoft Edge 고품질 AI 남성 음성 (ko-KR-InJoonNeural)</div>
+        <div id="voice-name" class="voice-info">🎙️ 음성 엔진 준비 완료</div>
     </div>
 </div>
 
@@ -129,11 +129,7 @@
         document.getElementById('btn-female').classList.toggle('active', gender === 'female');
         
         const infoElem = document.getElementById('voice-name');
-        if (gender === 'male') {
-            infoElem.innerText = "🎙️ Microsoft Edge 고품질 AI 남성 음성 (ko-KR-InJoonNeural)";
-        } else {
-            infoElem.innerText = "🎙️ Microsoft Edge 고품질 AI 여성 음성 (ko-KR-SunHiNeural)";
-        }
+        infoElem.innerText = gender === 'male' ? "🎙️ Google 남성 톤 AI 음성 적용" : "🎙️ Google 여성 톤 AI 음성 적용";
 
         if (!audioPlayer.paused) {
             playSpeech();
@@ -198,7 +194,7 @@
         audioPlayer.play().then(() => {
             playBtn.innerText = "⏸️ 일시정지";
         }).catch(err => {
-            alert("음성 재생 실패: " + err);
+            alert("음성 재생 오류: " + err);
             playBtn.innerText = "▶️ 읽기";
         });
     }
