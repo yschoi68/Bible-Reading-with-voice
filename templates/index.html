@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>날마다 성경을 검토함 (음성 지원)</title>
+    <title>날마다 성경을 검토함</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #f4f6f8; }
@@ -43,10 +43,6 @@
         .btn-play { background-color: #2b6cb0; color: white; }
         .btn-stop { background-color: #e53e3e; color: white; }
 
-        .gender-selector { display: flex; gap: 10px; background: #edf2f7; padding: 4px; border-radius: 20px; }
-        .gender-btn { border: none; background: none; padding: 6px 16px; border-radius: 16px; font-size: 0.9rem; font-weight: bold; color: #4a5568; cursor: pointer; }
-        .gender-btn.active { background-color: #2b6cb0; color: white; }
-
         .scripture { font-size: 1.15rem; font-weight: bold; color: #1a365d; background: #ebf8ff; padding: 18px; border-left: 5px solid #3182ce; border-radius: 6px; margin-bottom: 18px; line-height: 1.6; }
         .content { line-height: 1.85; color: #2d3748; font-size: 1.05rem; }
         
@@ -78,45 +74,23 @@
                 <button id="play-btn" class="play-btn btn-play" onclick="togglePlay()">▶️ 읽기</button>
                 <button class="play-btn btn-stop" onclick="stopAudio()">⏹️ 정지</button>
             </div>
-            
-            <div class="gender-selector">
-                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 목소리</button>
-                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 목소리</button>
-            </div>
         </div>
 
         <div id="scripture-text" class="scripture"></div>
         <div id="body-text" class="content"></div>
         
-        <div id="voice-name" class="voice-info">🎙️ 안전한 무료 연속 음성 엔진</div>
+        <div id="voice-name" class="voice-info">🎙️ 기기 내장 Web Speech API 엔진 사용 중</div>
     </div>
 </div>
-
-<audio id="audio-player" style="display:none;"></audio>
 
 <script>
     let currentSpeechText = ""; 
     let currentPrevDate = "";
     let currentNextDate = "";
-    let currentGender = "male";
-    
-    let textChunks = [];
-    let currentChunkIndex = 0;
     let isPlaying = false;
 
-    const audioPlayer = document.getElementById('audio-player');
     const playBtn = document.getElementById('play-btn');
-
-    function setGender(gender) {
-        currentGender = gender;
-        document.getElementById('btn-male').classList.toggle('active', gender === 'male');
-        document.getElementById('btn-female').classList.toggle('active', gender === 'female');
-
-        if (isPlaying) {
-            stopAudio();
-            playSpeech();
-        }
-    }
+    const synth = window.speechSynthesis;
 
     function loadDailyText(dateStr = '') {
         stopAudio();
@@ -158,7 +132,13 @@
 
     function togglePlay() {
         if (isPlaying) {
-            stopAudio();
+            if (synth.paused) {
+                synth.resume();
+                playBtn.innerText = "⏸️ 일시정지";
+            } else {
+                synth.pause();
+                playBtn.innerText = "▶️ 다시 읽기";
+            }
         } else {
             playSpeech();
         }
@@ -167,46 +147,33 @@
     function playSpeech() {
         if (!currentSpeechText) return;
 
-        // 문장 단위로 분할 (줄바꿈 및 마침표 기준)
-        textChunks = currentSpeechText.split(/(?<=[.?!])\s+/).filter(c => c.trim().length > 0);
-        currentChunkIndex = 0;
-        isPlaying = true;
+        synth.cancel(); // 이전 음성 초기화
 
-        playNextChunk();
+        const utterance = new SpeechSynthesisUtterance(currentSpeechText);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.95; // 읽기 속도 (약간 천천히)
+
+        utterance.onstart = function() {
+            isPlaying = true;
+            playBtn.innerText = "⏸️ 일시정지";
+        };
+
+        utterance.onend = function() {
+            isPlaying = false;
+            playBtn.innerText = "▶️ 읽기";
+        };
+
+        utterance.onerror = function(e) {
+            console.error("TTS Error:", e);
+            isPlaying = false;
+            playBtn.innerText = "▶️ 읽기";
+        };
+
+        synth.speak(utterance);
     }
-
-    function playNextChunk() {
-        if (!isPlaying || currentChunkIndex >= textChunks.length) {
-            stopAudio();
-            return;
-        }
-
-        playBtn.innerText = "⏸️ 일시정지";
-        const chunk = encodeURIComponent(textChunks[currentChunkIndex]);
-        
-        // 브라우저에서 직접 재생 가능한 보편적인 오픈 TTS 스트리밍 URL
-        let ttsUrl = "";
-        if (currentGender === 'male') {
-            ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${chunk}&tl=ko&client=tw-ob`;
-        } else {
-            ttsUrl = `https://dict.naver.com/api/tts?speaker=kyuri&text=${chunk}`;
-        }
-
-        audioPlayer.src = ttsUrl;
-        audioPlayer.play().catch(err => {
-            currentChunkIndex++;
-            playNextChunk();
-        });
-    }
-
-    audioPlayer.onended = function() {
-        currentChunkIndex++;
-        playNextChunk();
-    };
 
     function stopAudio() {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
+        synth.cancel();
         isPlaying = false;
         playBtn.innerText = "▶️ 읽기";
     }
