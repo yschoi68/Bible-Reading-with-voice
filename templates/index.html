@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>날마다 성경을 검토함 (자연스러운 AI 음성)</title>
+    <title>날마다 성경을 검토함 (음성 지원)</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #f4f6f8; }
@@ -58,7 +58,7 @@
 
 <div class="header-banner">
     <h1>날마다 성경을 검토함</h1>
-    <p>JW.ORG daily text reader with Natural Neural Voice</p>
+    <p>JW.ORG daily text reader</p>
 </div>
 
 <div class="card">
@@ -80,26 +80,30 @@
             </div>
             
             <div class="gender-selector">
-                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 목소리 (인준)</button>
-                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 목소리 (선희)</button>
+                <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성 목소리</button>
+                <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성 목소리</button>
             </div>
         </div>
 
         <div id="scripture-text" class="scripture"></div>
         <div id="body-text" class="content"></div>
         
-        <div id="voice-name" class="voice-info">🎙️ 고품질 자연 신경망 음성 (평생 무료)</div>
+        <div id="voice-name" class="voice-info">🎙️ 안전한 무료 연속 음성 엔진</div>
     </div>
 </div>
 
 <audio id="audio-player" style="display:none;"></audio>
 
 <script>
-    let currentCacheId = ""; 
+    let currentSpeechText = ""; 
     let currentPrevDate = "";
     let currentNextDate = "";
     let currentGender = "male";
     
+    let textChunks = [];
+    let currentChunkIndex = 0;
+    let isPlaying = false;
+
     const audioPlayer = document.getElementById('audio-player');
     const playBtn = document.getElementById('play-btn');
 
@@ -108,7 +112,8 @@
         document.getElementById('btn-male').classList.toggle('active', gender === 'male');
         document.getElementById('btn-female').classList.toggle('active', gender === 'female');
 
-        if (!audioPlayer.paused) {
+        if (isPlaying) {
+            stopAudio();
             playSpeech();
         }
     }
@@ -130,7 +135,7 @@
                 if(data.success) {
                     currentPrevDate = data.prev_date;
                     currentNextDate = data.next_date;
-                    currentCacheId = data.cache_id;
+                    currentSpeechText = data.speech_text;
 
                     document.getElementById('date-text').innerText = data.date;
                     document.getElementById('scripture-text').innerText = data.scripture;
@@ -152,39 +157,59 @@
     }
 
     function togglePlay() {
-        if (!audioPlayer.paused) {
-            audioPlayer.pause();
-            playBtn.innerText = "▶️ 읽기";
+        if (isPlaying) {
+            stopAudio();
         } else {
             playSpeech();
         }
     }
 
     function playSpeech() {
-        if (!currentCacheId) return;
+        if (!currentSpeechText) return;
 
-        playBtn.innerText = "⏳ 음성 생성 중...";
+        // 문장 단위로 분할 (줄바꿈 및 마침표 기준)
+        textChunks = currentSpeechText.split(/(?<=[.?!])\s+/).filter(c => c.trim().length > 0);
+        currentChunkIndex = 0;
+        isPlaying = true;
+
+        playNextChunk();
+    }
+
+    function playNextChunk() {
+        if (!isPlaying || currentChunkIndex >= textChunks.length) {
+            stopAudio();
+            return;
+        }
+
+        playBtn.innerText = "⏸️ 일시정지";
+        const chunk = encodeURIComponent(textChunks[currentChunkIndex]);
         
-        const ttsUrl = `/api/tts?cache_id=${currentCacheId}&gender=${currentGender}`;
-        
+        // 브라우저에서 직접 재생 가능한 보편적인 오픈 TTS 스트리밍 URL
+        let ttsUrl = "";
+        if (currentGender === 'male') {
+            ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${chunk}&tl=ko&client=tw-ob`;
+        } else {
+            ttsUrl = `https://dict.naver.com/api/tts?speaker=kyuri&text=${chunk}`;
+        }
+
         audioPlayer.src = ttsUrl;
-        audioPlayer.play().then(() => {
-            playBtn.innerText = "⏸️ 일시정지";
-        }).catch(err => {
-            alert("음성 재생 오류: " + err);
-            playBtn.innerText = "▶️ 읽기";
+        audioPlayer.play().catch(err => {
+            currentChunkIndex++;
+            playNextChunk();
         });
     }
+
+    audioPlayer.onended = function() {
+        currentChunkIndex++;
+        playNextChunk();
+    };
 
     function stopAudio() {
         audioPlayer.pause();
         audioPlayer.currentTime = 0;
+        isPlaying = false;
         playBtn.innerText = "▶️ 읽기";
     }
-
-    audioPlayer.onended = function() {
-        playBtn.innerText = "▶️ 읽기";
-    };
 
     loadDailyText();
 </script>
