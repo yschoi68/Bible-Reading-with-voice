@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>날마다 성경을 검토함</title>
+    <title>날마다 성경을 검토함 (Edge TTS)</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Malgun Gothic', sans-serif; max-width: 680px; margin: 20px auto; padding: 0 15px; background-color: #f4f6f8; }
@@ -29,7 +29,9 @@
         
         .player-control {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
             margin-bottom: 20px;
             background: #f8fafc;
             padding: 15px;
@@ -37,13 +39,18 @@
             border: 1px solid #e2e8f0;
         }
         .btn-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
-        .play-btn { padding: 12px 28px; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .play-btn { padding: 10px 24px; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn-play { background-color: #2b6cb0; color: white; }
         .btn-stop { background-color: #e53e3e; color: white; }
+
+        .gender-selector { display: flex; gap: 10px; background: #edf2f7; padding: 4px; border-radius: 20px; }
+        .gender-btn { border: none; background: none; padding: 6px 16px; border-radius: 16px; font-size: 0.9rem; font-weight: bold; color: #4a5568; cursor: pointer; }
+        .gender-btn.active { background-color: #2b6cb0; color: white; }
 
         .scripture { font-size: 1.15rem; font-weight: bold; color: #1a365d; background: #ebf8ff; padding: 18px; border-left: 5px solid #3182ce; border-radius: 6px; margin-bottom: 18px; line-height: 1.6; }
         .content { line-height: 1.85; color: #2d3748; font-size: 1.05rem; }
         
+        .voice-info { font-size: 0.85rem; color: #718096; margin-top: 20px; background: #f8fafc; padding: 8px 12px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center; }
         #loading { text-align: center; padding: 40px; font-weight: bold; color: #4a5568; }
     </style>
 </head>
@@ -71,10 +78,17 @@
                 <button id="play-btn" class="play-btn btn-play" onclick="togglePlay()">▶️ 읽기</button>
                 <button class="play-btn btn-stop" onclick="stopAudio()">⏹️ 정지</button>
             </div>
+            
+            <div class="gender-selector">
+                <button id="btn-female" class="gender-btn active" onclick="setGender('female')">👩 여성 (선희)</button>
+                <button id="btn-male" class="gender-btn" onclick="setGender('male')">👨 남성 (인준)</button>
+            </div>
         </div>
 
         <div id="scripture-text" class="scripture"></div>
         <div id="body-text" class="content"></div>
+        
+        <div id="voice-name" class="voice-info">🎙️ Edge 신경망 고품질 음성 적용 중</div>
     </div>
 </div>
 
@@ -84,9 +98,21 @@
     let currentCacheId = ""; 
     let currentPrevDate = "";
     let currentNextDate = "";
+    let currentGender = "female";
     
     const audioPlayer = document.getElementById('audio-player');
     const playBtn = document.getElementById('play-btn');
+
+    function setGender(gender) {
+        currentGender = gender;
+        document.getElementById('btn-female').classList.toggle('active', gender === 'female');
+        document.getElementById('btn-male').classList.toggle('active', gender === 'male');
+
+        if (!audioPlayer.paused) {
+            stopAudio();
+            playSpeech();
+        }
+    }
 
     function loadDailyText(dateStr = '') {
         stopAudio();
@@ -138,18 +164,13 @@
     function playSpeech() {
         if (!currentCacheId) return;
 
-        playBtn.innerText = "⏳ 음성 생성 중...";
+        playBtn.innerText = "⏸️ 일시정지";
         
-        const ttsUrl = `/api/tts?cache_id=${currentCacheId}&t=${new Date().getTime()}`;
+        const ttsUrl = `/api/tts?cache_id=${currentCacheId}&gender=${currentGender}&t=${new Date().getTime()}`;
         
         audioPlayer.src = ttsUrl;
-        audioPlayer.load();
-
-        audioPlayer.play().then(() => {
-            playBtn.innerText = "⏸️ 일시정지";
-        }).catch(err => {
+        audioPlayer.play().catch(err => {
             console.error(err);
-            alert("음성을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
             playBtn.innerText = "▶️ 읽기";
         });
     }
