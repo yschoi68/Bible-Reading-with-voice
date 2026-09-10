@@ -1,6 +1,7 @@
 import io
 import re
 import asyncio
+import html
 from flask import Flask, render_template, request, jsonify, Response
 import requests
 from bs4 import BeautifulSoup
@@ -119,7 +120,23 @@ def get_daily_text():
 
 
 async def generate_edge_tts_stream(text, voice):
-    communicator = edge_tts.Communicate(text, voice)
+    # XML 특수문자 이스케이프 처리 (&, <, > 방지)
+    safe_text = html.escape(text)
+
+    # 마침표 뒤 0.4초, 쉼표 뒤 0.2초 멈춤 지정 / 속도 -5% 감속
+    safe_text = safe_text.replace('.', '. <break time="400ms"/>')
+    safe_text = safe_text.replace(',', ', <break time="200ms"/>')
+    safe_text = safe_text.replace('\n', '<break time="500ms"/>')
+
+    ssml = f"""<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='ko-KR'>
+    <voice name='{voice}'>
+        <prosody rate='-5%'>
+            {safe_text}
+        </prosody>
+    </voice>
+</speak>"""
+
+    communicator = edge_tts.Communicate(ssml, voice, is_ssml=True)
     async for chunk in communicator.stream():
         if chunk["type"] == "audio":
             yield chunk["data"]
