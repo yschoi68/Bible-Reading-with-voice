@@ -1,11 +1,8 @@
-import io
-import re
-import asyncio
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
-import edge_tts
+import re
 
 app = Flask(__name__)
 
@@ -70,7 +67,7 @@ def get_daily_text():
     month = str(target_date.month)
     day = str(target_date.day)
 
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    headers = {'User-Agent': 'Mozilla/5.0'}
     json_url = f"https://wol.jw.org/wol/dt/r8/lp-ko/{year}/{month}/{day}"
 
     try:
@@ -100,60 +97,21 @@ def get_daily_text():
                 next_date = (target_date + timedelta(days=1)).strftime('%Y-%m-%d')
 
                 full_text = f"{scripture_text}. {content_text}"
-                cache_id = f"{year}{month}{day}"
-                TEXT_CACHE[cache_id] = full_text
+                formatted_speech = convert_bible_for_tts(full_text)
 
                 return jsonify({
                     'success': True,
                     'date': date_text,
                     'scripture': scripture_text,
                     'content': content_text,
+                    'speech_text': formatted_speech,
                     'prev_date': prev_date,
-                    'next_date': next_date,
-                    'cache_id': cache_id
+                    'next_date': next_date
                 })
 
         return jsonify({'success': False, 'error': '데이터를 가져오지 못했습니다.'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-
-async def generate_edge_tts(text, voice_name):
-    communicate = edge_tts.Communicate(text, voice_name)
-    audio_data = b""
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            audio_data += chunk["data"]
-    return audio_data
-
-
-@app.route('/api/tts')
-def generate_tts():
-    cache_id = request.args.get('cache_id', '')
-    gender = request.args.get('gender', 'male')
-
-    text = TEXT_CACHE.get(cache_id, '성경 텍스트를 불러올 수 없습니다.')
-    formatted_text = convert_bible_for_tts(text)
-
-    # 남성/여성 고품질 자연 음성 지정
-    voice_name = "ko-KR-InJoonNeural" if gender == "male" else "ko-KR-SunHiNeural"
-
-    try:
-        # 비동기 함수 실행
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        audio_bytes = loop.run_until_complete(generate_edge_tts(formatted_text, voice_name))
-        loop.close()
-
-        return send_file(
-            io.BytesIO(audio_bytes),
-            mimetype="audio/mpeg",
-            as_attachment=False,
-            download_name="speech.mp3"
-        )
-    except Exception as e:
-        print("TTS Error:", str(e))
-        return str(e), 500
 
 
 if __name__ == '__main__':
