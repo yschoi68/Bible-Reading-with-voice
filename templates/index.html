@@ -112,11 +112,10 @@
     </div>
 </div>
 
-<!-- 오디오 태그 -->
 <audio id="audio-player" style="display:none;"></audio>
 
 <script>
-    let rawFullText = ""; 
+    let currentCacheId = ""; 
     let currentPrevDate = "";
     let currentNextDate = "";
     let currentGender = "male";
@@ -158,12 +157,11 @@
                 if(data.success) {
                     currentPrevDate = data.prev_date;
                     currentNextDate = data.next_date;
+                    currentCacheId = data.cache_id;
 
                     document.getElementById('date-text').innerText = data.date;
                     document.getElementById('scripture-text').innerText = data.scripture;
                     document.getElementById('body-text').innerText = data.content;
-                    
-                    rawFullText = `${data.scripture}. ${data.content}`;
 
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('content-box').style.display = 'block';
@@ -190,11 +188,11 @@
     }
 
     function playSpeech() {
-        if (!rawFullText) return;
+        if (!currentCacheId) return;
 
         playBtn.innerText = "⏳ 음성 생성 중...";
         
-        const ttsUrl = `/api/tts?gender=${currentGender}&text=${encodeURIComponent(rawFullText)}`;
+        const ttsUrl = `/api/tts?cache_id=${currentCacheId}&gender=${currentGender}`;
         
         audioPlayer.src = ttsUrl;
         audioPlayer.play().then(() => {
